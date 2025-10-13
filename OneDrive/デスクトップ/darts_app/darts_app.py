@@ -11,24 +11,7 @@ from streamlit_image_coordinates import streamlit_image_coordinates
 from PIL import Image
 import io # Matplotlibの図をPIL Imageに変換するために必要
 
-# Python System Files
-__pycache__/
-*.pyc
 
-# IDE/Tooling
-.vscode/
-
-# Streamlit/Google Assets
-.streamlit/
-.gemini/
-.ipython/
-.keras/
-temp_video/
-overlay_output.mp4
-
-# Windows/OS Files (念のための追記)
-*AppData*/
-*.jtx
 
 # =========================================================
 # 1. ページの基本設定 (***必須：stコマンドの最初に置く***)
@@ -207,7 +190,7 @@ st.markdown("""
     color: #E0E0E0; /* 全体の文字色 */
 
         /* 🌟【追加】背景画像の設定 🌟 */
-    background-image: url("YOUR_BACKGROUND_IMAGE_URL_OR_BASE64_HERE"); 
+    background-image: url("https://raw.githubusercontent.com/k024c1009-ui/darts_app/refs/heads/main/.gitignore"); 
     background-size: cover; /* 画面全体に画像を拡大/縮小して表示 */
     background-attachment: fixed; /* スクロールしても背景を固定 */
     background-position: center;
