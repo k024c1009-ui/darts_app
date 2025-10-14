@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 from streamlit_image_coordinates import streamlit_image_coordinates
 from PIL import Image
 import io # Matplotlibの図をPIL Imageに変換するために必要
-
-
+import gc # ファイルロック解除のため
 
 # =========================================================
 # 1. ページの基本設定 (***必須：stコマンドの最初に置く***)
@@ -26,55 +25,142 @@ st.set_page_config(
 # 2. セッションステートの初期化
 # =========================================================
 
-# 記録用のセッションステートを初期化
-if 'hit_points' not in st.session_state:
-    st.session_state.hit_points = []
+# 着弾点入力機能のキー管理は不要になったため削除
+# if 'hit_points' not in st.session_state:
+#     st.session_state.hit_points = []
+# if 'reset_count' not in st.session_state:
+#     st.session_state.reset_count = 0
+
+
+# =========================================================
+# 3. カスタムCSSの定義とGoogle Fontsのインポート
+# =========================================================
+st.markdown("""
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&display=swap');
+
+/* 🌟【最重要】アプリ全体のテーマとフォント設定 🌟 */
+.stApp {
+    /* 背景画像をアプリ全体に適用 */
+    background-image: url("https://github.com/k024c1009-ui/darts_app/raw/main/Gemini_Generated_Image_6uf6ec6uf6ec6uf6.png"); 
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
     
-# リセット回数カウンター（ウィジェットのキーを更新し、リセット問題を解決するために使用）
-if 'reset_count' not in st.session_state:
-    st.session_state.reset_count = 0
+    /* 文字のトーン */
+    background-color: #191919; 
+    color: #E0E0E0; 
+}
+
+/* 🌟 見出し・タイトルを Orbitron に変更し、ネオン効果を強化 🌟 */
+h1 {
+    font-family: 'Mochiy Pop P One', 'Orbitron', sans-serif; 
+    font-weight: 700;
+    color: #00FFFF;
+    text-shadow: 0 0 5px #00FFFF, 0 0 10px #00FFFF, 0 0 15px rgba(0, 255, 255, 0.5);
+}
+
+h2, h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    color: #00FFFF;
+    text-shadow: 0 0 3px #00FFFF;
+}
+
+/* 🌟 メインコンテンツエリアの半透明の黒い背景を適用 🌟 */
+/* st.title の下からコンテンツ全体を覆う */
+div[data-testid="stAppViewBlock"] > section:nth-child(2) > div:first-child,
+div.block-container { 
+    background: rgba(0, 0, 0, 0.75); /* 濃い半透明の黒を適用 */
+    padding: 20px; 
+    border-radius: 10px;
+}
+
+/* 🌟 タイトルエリアの可読性確保（完全な黒で塗りつぶし） 🌟 */
+div[data-testid="stVerticalBlock"] > div:first-child > div:first-child {
+    background-color: black; 
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+
+/* 🌟 標準テキストとラベルの装飾（Montserrat） 🌟 */
+
+/* アプリ全体と要素へのフォント適用 */
+html, body, .stApp, .stRadio label, .stSelectbox label, p, li {
+    font-family: 'Montserrat', sans-serif; 
+    font-weight: 400;
+}
+
+/* 全ての標準テキストの影を調整 */
+p, li, .stText { 
+    color: #E0E0E0 !important; 
+    text-shadow: 0 0 2px #E0E0E0, 0 0 5px rgba(255, 255, 255, 0.2); 
+    font-size: 1.05em;
+}
+
+/* ラジオボタン、セレクトボックスなどのラベル */
+.stRadio > label, .stSelectbox > label {
+    color: #FFFFAA !important; /* 質問文を黄色系のネオンカラーに */
+    text-shadow: 0 0 5px #FFD700; /* ゴールド系の影 */
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+
+/* 🌟 UI要素の色調整 🌟 */
+
+/* 診断ボタンのカスタマイズ */
+.stButton>button {
+    background-color: #00FFFF;
+    color: #191919;
+    border: 2px solid #00FFFF;
+    border-radius: 8px;
+    font-weight: bold;
+    padding: 10px 20px;
+    transition: all 0.2s;
+}
+.stButton>button:hover {
+    background-color: #191919;
+    color: #00FFFF;
+    box-shadow: 0 0 10px #00FFFF;
+}
+
+/* ドロップダウンメニューのリストの背景（選択肢の文字を黒くするため） */
+div[data-testid="stSelectbox"] div[role="listbox"] {
+    background-color: white !important; 
+}
+.stSelectbox div[role="listbox"] span,
+.stSelectbox div[role="listbox"] p {
+    color: black !important; /* 選択肢の文字を黒にする */
+}
+
+/* 情報・警告ボックスのテーマ化 */
+div[data-testid="stAlert"] div[role="alert"].stAlert.info {
+    background-color: rgba(0, 255, 255, 0.1); 
+    border-left: 5px solid #00FFFF; 
+}
+div[data-testid="stAlert"] div[role="alert"].stAlert.warning {
+    background-color: rgba(255, 165, 0, 0.1); 
+    border-left: 5px solid #FFD700;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 
 # =========================================================
-# 3. Matplotlib描画とPIL Image変換を行うヘルパー関数
-# =========================================================
-def create_drawable_darts_board(img_path, hit_points):
-    """ダーツボード画像に記録点を描画し、クリック可能なPIL Imageオブジェクトを返す"""
-    try:
-        img = Image.open(img_path)
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.imshow(img)
-        
-        if hit_points:
-            x_coords = [p[0] for p in hit_points]
-            y_coords = [p[1] for p in hit_points]
-            ax.scatter(x_coords, y_coords, color='red', s=100, alpha=0.8, edgecolors='black', linewidths=1.5)
-        
-        ax.set_xlim(0, img.width)
-        ax.set_ylim(img.height, 0) 
-        ax.axis('off') 
-        
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
-        buf.seek(0)
-        img_pil = Image.open(buf)
-        
-        plt.close(fig) 
-        return img_pil
-        
-    except Exception as e:
-        st.error(f"描画関数内で致命的なエラーが発生しました: {e}")
-        return None
-
-# =========================================================
-# 4. フォーム解析のためのヘルパー関数 (復元・追加)
+# 4. フォーム解析のためのヘルパー関数
 # =========================================================
 def calculate_angle(a, b, c):
     """3つのランドマークから角度を計算する"""
-    a = np.array(a)  # 最初の点 (例: 肩)
-    b = np.array(b)  # 中心の点 (例: 肘)
-    c = np.array(c)  # 最後の点 (例: 手首)
+    a = np.array(a) 
+    b = np.array(b) 
+    c = np.array(c) 
     
-    # ベクトルBAとベクトルBCの角度を計算
     radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
     angle = np.abs(radians*180.0/np.pi)
     
@@ -86,24 +172,20 @@ def calculate_angle(a, b, c):
 def process_video_for_analysis(video_path, dominant_arm, mp_pose, mp_drawing):
     """動画を解析し、肘の角度リストとオーバーレイ動画パスを返す"""
     elbow_angles = []
-    # オーバーレイ動画の保存先
     over_path = os.path.join(os.path.dirname(video_path), "overlay_output.mp4")
     
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return elbow_angles, None, cap, None
 
-    # 動画の基本情報を取得
     fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
-    # オーバーレイ動画を書き出すための設定（コーデックに注意）
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v') # Streamlitと互換性の高いコーデック
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v') 
     out = cv2.VideoWriter(over_path, fourcc, fps, (width, height))
     
-    # MediaPipe Poseモデルの初期化
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         frame_count = 0
         pbar = st.progress(0)
@@ -113,23 +195,18 @@ def process_video_for_analysis(video_path, dominant_arm, mp_pose, mp_drawing):
             if not ret:
                 break
             
-            # BGR画像をRGBに変換（MediaPipe処理のため）
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image.flags.writeable = False
             
-            # 姿勢推定の実行
             results = pose.process(image)
             
-            # RGB画像をBGRに戻す（OpenCV表示/保存のため）
             image.flags.writeable = True
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             
-            # ランドマークが検出された場合のみ処理
             if results.pose_landmarks:
                 try:
                     landmarks = results.pose_landmarks.landmark
                     
-                    # 利き腕に応じてランドマークを設定
                     shoulder_landmark = mp_pose.PoseLandmark.RIGHT_SHOULDER if dominant_arm == "右利き" else mp_pose.PoseLandmark.LEFT_SHOULDER
                     elbow_landmark = mp_pose.PoseLandmark.RIGHT_ELBOW if dominant_arm == "右利き" else mp_pose.PoseLandmark.LEFT_ELBOW
                     wrist_landmark = mp_pose.PoseLandmark.RIGHT_WRIST if dominant_arm == "右利き" else mp_pose.PoseLandmark.LEFT_WRIST
@@ -138,27 +215,22 @@ def process_video_for_analysis(video_path, dominant_arm, mp_pose, mp_drawing):
                     elbow = [landmarks[elbow_landmark.value].x, landmarks[elbow_landmark.value].y]
                     wrist = [landmarks[wrist_landmark.value].x, landmarks[wrist_landmark.value].y]
                         
-                    # 角度を計算し、リストに追加
                     angle_deg = calculate_angle(shoulder, elbow, wrist)
                     elbow_angles.append(angle_deg)
                     
-                    # 骨格を描画
                     mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
                                             mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), 
                                             mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2))
                                 
                 except Exception:
-                    # 角度計算エラーは無視して処理を続行
                     pass 
             
-            # オーバーレイ動画として書き出し
             out.write(image)
             
             frame_count += 1
-            # プログレスバーの更新
             pbar.progress(min(frame_count / (total_frames + 1), 1.0))
         
-        pbar.empty() # プログレスバーを削除
+        pbar.empty()
         
     return elbow_angles, over_path, cap, out
 
@@ -169,74 +241,6 @@ st.write("この診断では、**あなたが普段使っているマイダー�
 st.write("さあ、あなたのダーツを次のレベルへと進化させましょう！")
 
 st.markdown("---")
-
-# --- カスタムCSSの定義 ---
-st.markdown("""
-<style>
-/* ラジオボタンのスタイル */
-.stRadio > label {
-    font-size: 1.1em;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-.stRadio div[role="radiogroup"] {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-.stApp {
-    background-color: #191919; /* 暗い背景 */
-    color: #E0E0E0; /* 全体の文字色 */
-
-        /* 🌟【追加】背景画像の設定 🌟 */
-    background-image: url("https://raw.githubusercontent.com/k024c1009-ui/darts_app/refs/heads/main/.gitignore"); 
-    background-size: cover; /* 画面全体に画像を拡大/縮小して表示 */
-    background-attachment: fixed; /* スクロールしても背景を固定 */
-    background-position: center;
-}
-/* 全ての標準テキスト（pタグなど）も統一 */
-p, li {
-    color: #E0E0E0 !important;
-}
-
-/* 🌟【追加】ラジオボタンの文字色を強制的に明るくする 🌟 */
-.stRadio label {
-    color: white !important; /* 選択肢の文字色を強制的に白に */
-    font-size: 1.1em;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-/* ヘッダーの色をモダンなアクセントカラーに */
-h1 {
-    color: #00FFFF; /* ターコイズブルー */
-    text-shadow: 0 0 5px rgba(0, 255, 255, 0.5); /* ネオン効果 */
-}
-h2, h3 {
-    color: #00FFFF;
-}
-
-/* 診断ボタンのカスタマイズ */
-.stButton>button {
-    background-color: #00FFFF; /* 背景色 */
-    color: #191919; /* 文字色 */
-    border: 2px solid #00FFFF;
-    border-radius: 8px;
-    font-weight: bold;
-    padding: 10px 20px;
-    transition: all 0.2s;
-}
-
-/* ホバー時の効果（任意） */
-.stButton>button:hover {
-    background-color: #191919;
-    color: #00FFFF;
-    box-shadow: 0 0 10px #00FFFF;
-}
-
-</style>
-""", unsafe_allow_html=True)
 
 
 # --- ステップ0: あなたのマイダーツ情報を教えてください ---
@@ -360,14 +364,7 @@ if uploaded_photo is not None:
     st.write("1. 写真はダーツボードの**真正面**から、歪みがないように撮影してください。")
     st.write("2. 着弾点分析の精度を高めるため、**全てのダーツ**が刺さった状態のものが理想です。")
 
-    # TODO: 今後、ここで写真のパスを一時保存するロジックを追加する
-
 st.markdown("---")
-
-# 元の着弾点手動入力UI（streamlit_image_coordinatesの部分）は完全に削除します。
-# ----------------------------------------------------------------------------------
-# (元の st.session_state.hit_points や streamlit_image_coordinates のロジックは全て削除)
-# ----------------------------------------------------------------------------------
 
 # --- 診断ボタンと結果表示 ---
 if st.button("あなたの運命のダーツを診断！"):
@@ -375,6 +372,7 @@ if st.button("あなたの運命のダーツを診断！"):
         st.error("動画ファイルをアップロードしてください。")
     else:
 
+        # 着弾点写真の保存ロジックをここに挿入
         if uploaded_photo is not None: # uploaded_photoがアップロードされているかチェック
             photo_dir = os.path.join(temp_dir, "photo")
             os.makedirs(photo_dir, exist_ok=True)
@@ -401,7 +399,6 @@ if st.button("あなたの運命のダーツを診断！"):
         
         with st.spinner("診断中... AIがあなたのフォームとダーツ感覚、好みを解析しています"):
 
-            if photo_path is not None:
              
              # --- プロンプトの組み立て ---
              prompt_parts = [
@@ -429,29 +426,13 @@ if st.button("あなたの運命のダーツを診断！"):
              else: budget_info = "予算は診断結果を見てから決めたい。"
              prompt_parts.append(f"---ユーザーの予算に関する希望---\n{budget_info}")
             
-            # --- 着弾点データの前処理とプロンプトへの追加 ---
-             if st.session_state.hit_points:
-                # 記録された座標をNumPy配列に変換
-                points = np.array(st.session_state.hit_points)
-                
-                # X座標とY座標の平均（中心）と標準偏差（散らばり）を計算
-                mean_x = np.mean(points[:, 0]) 
-                mean_y = np.mean(points[:, 1]) 
-                std_x = np.std(points[:, 0])   
-                std_y = np.std(points[:, 1])   
-                
-                # 計算結果をプロンプトに追加
-                prompt_parts.append(f"\n---着弾点分析の結果---")
-                prompt_parts.append(f"着弾点の中心 (X, Y): ({mean_x:.2f}, {mean_y:.2f})")
-                prompt_parts.append(f"X軸の散らばり（ブレの目安）: {std_x:.2f} ピクセル")
-                prompt_parts.append(f"Y軸の散らばり（ブレの目安）: {std_y:.2f} ピクセル")
-                prompt_parts.append("※ X座標は左ほど小さく、Y座標は上ほど小さい画像座標です。")
-                
-                # 簡易的な定性分析（AIが判断しやすくするためのヒント）
-                if std_x > 50 or std_y > 50: 
-                    prompt_parts.append("全体の散らばり（標準偏差）が大きいため、リリースが非常に不安定です。")
-                if mean_y > 350: # 例としてボード下部をY>350と仮定
-                    prompt_parts.append("着弾中心がボードの下方に大きく偏っており、ダーツが失速しやすい傾向です。")
+            # --- 着弾点データの前処理とプロンプトへの追加 (写真アップロードに切り替え済み) ---
+             if photo_path is not None:
+                # ユーザーが着弾点写真を提供したことをAIに伝える
+                prompt_parts.append(f"\n---着弾点写真による分析---")
+                prompt_parts.append(f"ユーザーはダーツボードの写真を提供しました。この写真から、着弾が全体的にどこに偏っているか、散らばり具合はどうかを視覚的に想像し、診断に活かしてください。")
+                # 💡 将来的にこの場所でOpenCVやVision AIを使って画像を解析するロジックを実装します。
+
             
             # --- 復元した動画解析の処理 (MediaPipe) ---
              mp_pose = mp.solutions.pose
@@ -518,21 +499,22 @@ if st.button("あなたの運命のダーツを診断！"):
              st.write("最終的には、実際にダーツショップなどで**専門スタッフに相談**し、**様々なダーツを『試投』**して、あなたの手に最も馴染む一本を見つけることが重要です。")
              st.write("この診断結果をヒントに、ぜひあなたのダーツを次のレベルへと進化させてくださいね！")
             
-# --- 最終的な一時ファイルの削除ロジック (WinError 5対策済み) ---
+# --- 最終的な一時ファイルの削除ロジック (診断ボタンの外側で定義) ---
 # ※ 診断ボタンが押されたかどうかに関わらず、ファイルを解放・削除するために実行。
 if video_path and os.path.exists(temp_dir): # temp_dirが存在する場合に実行
     # 処理後に cap と out が閉じられていない場合のために del を実行
     try:
+        import gc # ガベージコレクションをインポート
         if 'cap' in locals() and cap is not None:
             cap.release()
             del cap
         if 'out' in locals() and out is not None:
             out.release()
             del out
-            
+        gc.collect() # 強制ガベージコレクション
+        
         # ディレクトリごと削除
         shutil.rmtree(temp_dir) 
-        # st.success(f"一時ディレクトリ '{temp_dir}' を正常に削除しました。") # デバッグ用
         
     except Exception as e:
         # WinError 5 アクセス拒否エラーが出やすい場所。警告にとどめる。
