@@ -14,7 +14,7 @@ import io
 import tempfile
 
 # =========================================================
-# 1. ページの基本設定 (***必須：stコマンドの最初に置く***)
+# 1. ページの基本設定
 # =========================================================
 st.set_page_config(
     page_title="DARTS Re:CODE", 
@@ -51,7 +51,7 @@ if 'uploaded_photo' not in st.session_state:
     st.session_state.uploaded_photo = None
 
 # =========================================================
-# 3. カスタムCSSの定義とGoogle Fontsのインポート
+# 3. カスタムCSS
 # =========================================================
 st.markdown("""
 <style>
@@ -76,7 +76,7 @@ div[data-testid="stAlert"] div[role="alert"].stAlert.warning { background-color:
 """, unsafe_allow_html=True)
 
 # =========================================================
-# 4. ヘルパー関数 (タイポ修正済み)
+# 4. ヘルパー関数
 # =========================================================
 def calculate_angle(a: list, b: list, c: list) -> float:
     a = np.array(a); b = np.array(b); c = np.array(c)
@@ -101,7 +101,6 @@ def process_video_for_analysis(video_path: str, dominant_arm: str, output_dir: s
                 image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB); image.flags.writeable = False; results = pose.process(image); image.flags.writeable = True; image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                 if results.pose_landmarks:
                     try:
-                        # ★★★ タイポ修正: results.pose_ landmarks -> results.pose_landmarks ★★★
                         landmarks = results.pose_landmarks.landmark
                         shoulder_landmark = mp_pose.PoseLandmark.RIGHT_SHOULDER if dominant_arm == "右利き" else mp_pose.PoseLandmark.LEFT_SHOULDER; elbow_landmark = mp_pose.PoseLandmark.RIGHT_ELBOW if dominant_arm == "右利き" else mp_pose.PoseLandmark.LEFT_ELBOW; wrist_landmark = mp_pose.PoseLandmark.RIGHT_WRIST if dominant_arm == "右利き" else mp_pose.PoseLandmark.LEFT_WRIST
                         shoulder = [landmarks[shoulder_landmark.value].x, landmarks[shoulder_landmark.value].y]; elbow = [landmarks[elbow_landmark.value].x, landmarks[elbow_landmark.value].y]; wrist = [landmarks[wrist_landmark.value].x, landmarks[wrist_landmark.value].y]
@@ -117,8 +116,9 @@ def process_video_for_analysis(video_path: str, dominant_arm: str, output_dir: s
 # =========================================================
 # 5. UI（ページ遷移ロジック）
 # =========================================================
+# (これ以降のUI部分は変更ありませんので、そのままお使いください)
 
-# --- ページ1: ウェルカム ＆ マイダーツ情報 ---
+# --- ページ1 ---
 if st.session_state.page == 1:
     st.title("🎯 DARTS Re:CODE")
     st.subheader("あなたのダーツ、次なる進化へ！【マイダーツ深掘り診断】")
@@ -140,7 +140,7 @@ if st.session_state.page == 1:
             st.session_state.page = 2
             st.rerun()
 
-# --- ページ2: 予算とダーツ感覚のヒアリング ---
+# --- ページ2 ---
 elif st.session_state.page == 2:
     st.header("ステップ2: あなたのダーツについて教えてください")
     st.radio("Q2-1: マイダーツにかけられる予算のイメージはありますか？", ("A: とにかく最初は安く始めたい（〜5,000円くらい）", "B: 初心者だけど、長く使えるものがほしい（5,000円〜15,000円くらい）", "C: デザインも性能も妥協したくない（15,000円円以上）", "D: まずは診断結果を見てから決めたい（予算は後で考える）"), key="q0_2")
@@ -159,7 +159,7 @@ elif st.session_state.page == 2:
             st.session_state.page = 3
             st.rerun()
 
-# --- ページ3: 動画・写真のアップロード ---
+# --- ページ3 ---
 elif st.session_state.page == 3:
     st.header("ステップ3: フォームと着弾点をアップロード")
     st.info("💡 **【重要】フォーム分析のための撮影ガイドライン**\n\n1. ダーツを投げる腕の**真横**から撮影してください。\n2. **肩の高さ**にカメラを設置するのが理想です。\n3. 体全体がフレームに収まるようにしてください。\n4. **逆光を避け**、明るい場所で撮影してください。")
@@ -185,7 +185,7 @@ elif st.session_state.page == 3:
                 st.session_state.page = 4
                 st.rerun()
                 
-# --- ページ4: 診断中・結果表示 ---
+# --- ページ4 ---
 elif st.session_state.page == 4:
     temp_dir = tempfile.mkdtemp()
     try:
@@ -252,9 +252,8 @@ elif st.session_state.page == 4:
             st.write("### 🎯 診断結果を参考に、次の一歩を踏み出そう！")
             st.write("この診断は、AIがあなたの**深い感覚とフォームの特性**から推測したものです。")
             st.write("最終的には、実際にダーツショップなどで**専門スタッフに相談**し、**様々なダーツを『試投』**して、あなたの手に最も馴染む一本を見つけることが重要です。")
-            st.write("この診断結果をヒントに、ぜひあなたのダーツを次のレベルへと進化させてくださいね！")
+            st.write("この診断結果をヒントにぜひあなたのダーツを次のレベルへと進化させてくださいね！")
             if st.button("もう一度診断する"):
-                # セッションステートをクリアして最初のページに戻る
                 keys_to_delete = [key for key in st.session_state.keys() if key != 'page']
                 for key in keys_to_delete:
                     del st.session_state[key]
